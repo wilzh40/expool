@@ -25,8 +25,8 @@ const defaultReducer = reductions => (state, action, ...rest) =>
  */
 
 const engine = Engine.create();
-engine.world.gravity.y = 0.05
-engine.world.gravity.x = 0
+engine.world.gravity.y = 0;
+engine.world.gravity.x = 0;
 
 const [sw, sh] = [Styles.screenW, Styles.screenH];
 const walls = [
@@ -36,7 +36,7 @@ const walls = [
   { x: 0.95 * sw, y: 0.5 * sh, w: 0.1 * sw, h: 1 * sh },
 ];
 
-walls_phys = walls.map((wall) =>
+walls_phys = walls.map(wall =>
   Bodies.rectangle(wall.x, wall.y, wall.w, wall.h, { isStatic: true })
 );
 
@@ -48,12 +48,11 @@ const sp = {
   y: 192 / SCALE,
 };
 const cueStart = {
-  x: sw*0.5  / SCALE,
-  y: sh*0.7 / SCALE,
+  x: sw * 0.5 / SCALE,
+  y: sh * 0.7 / SCALE,
 };
 const ballRadius = 15;
 const eightBallLocs = [
-  { id: 0, x: cueStart.x, y: cueStart.y },
   { id: 1, x: sp.x, y: sp.y },
   { id: 2, x: sp.x - 2 * ballRadius, y: sp.y - ballRadius },
   { id: 3, x: sp.x - 4 * ballRadius, y: sp.y + 2 * ballRadius },
@@ -71,22 +70,28 @@ const eightBallLocs = [
   { id: 15, x: sp.x - 8 * ballRadius, y: sp.y },
 ];
 
+const _cue = Bodies.circle(cueStart.x, cueStart.y, ballRadius, {
+  restitution: 0.5,
+  friction: 0.2,
+});
+World.add(engine.world, _cue);
 
-const stack = Composites.pyramid(sw/2,sh/2,3,3,0,0, ({ x, y }) =>
-  Bodies.circle(x, y, ballRadius, { restitution: 0.6, friction: 0.1 })
-);
+// const stack = Composites.pyramid(sw/2,sh/2,3,3,0,0, ({ x, y }) =>
+//   Bodies.circle(x, y, ballRadius, { restitution: 0.6, friction: 0.1 })
+// );
 eightBall_phys = eightBallLocs.map(({ id, x, y }) =>
   Bodies.circle(x, y, ballRadius, { restitution: 0.6, friction: 0.1 })
 );
 // eightBall_phys.forEach(ball => World.add(engine.world, ball));
-World.add(engine.world, eightBall_phys)
-const balls = eightBall_phys
+World.add(engine.world, eightBall_phys);
+const balls = eightBall_phys;
 
 const physicsReduce = defaultReducer({
   START(state) {
     return merge(state, {
       physics: {
         balls: balls.map(({ position, angle }) => ({ position, angle })),
+        cue: { position: _cue.position },
       },
     });
   },
@@ -99,8 +104,16 @@ const physicsReduce = defaultReducer({
       physics: {
         lastDt: dt,
         balls: balls.map(({ position, angle }) => ({ position, angle })),
+        cue: { position: _cue.position },
       },
     });
+  },
+  SHOOT(state, { magnitude, angle }) {
+    // TODO add shit
+    const scale = 0.0001
+    const force = {x: magnitude * scale * Math.cos(angle), y: magnitude * scale * Math.sin(angle)}
+    Body.applyForce(_cue, _cue.position, force)
+    return state
   },
 
   TOUCH(state, { pressed, x0, y0 }) {
@@ -142,20 +155,34 @@ const Balls = connect(state => ({
             left: x - ballRadius,
             top: y - ballRadius,
             borderRadius: '50%',
-            width: 2*ballRadius,
-            height: 2*ballRadius,
-            backgroundColor: 'red'
+            width: 2 * ballRadius,
+            height: 2 * ballRadius,
+            backgroundColor: 'red',
           }}
         />
       );
     })}
   </View>
 );
-
+const Cue = connect(state => ({
+  cue: state.get('physics').get('cue'),
+}))(({ cue }) =>
+  <View
+    style={{
+      position: 'absolute',
+      left: cue.get('position').get('x') - ballRadius,
+      top: cue.get('position').get('y') - ballRadius,
+      borderRadius: '50%',
+      width: 2 * ballRadius,
+      height: 2 * ballRadius,
+      backgroundColor: 'black',
+    }}
+  />
+);
 
 /**
- * Ground
- */
+     * Ground
+     */
 
 const Ground = () =>
   <View
@@ -188,5 +215,6 @@ export const Scene = () =>
     key="scene-container"
     style={[Styles.container, { backgroundColor: '#FFF' }]}>
     <Ground />
+    <Cue />
     <Balls />
   </View>;

@@ -7,6 +7,7 @@ import { Constants, Accelerometer, Svg } from 'expo';
 
 import { Scene, sceneReduce } from './Scene';
 import Clock from './Clock';
+import Cue from './Cue'
 import Styles from './Styles';
 
 import io from 'socket.io-client';
@@ -19,6 +20,7 @@ const Game = () =>
   <View style={Styles.container}>
     <Clock />
     <Scene />
+    <Cue />
   </View>;
 
 const dispatchQueue = [];
