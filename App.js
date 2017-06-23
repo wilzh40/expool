@@ -1,84 +1,46 @@
 import React from 'react';
 import { Engine, Render, World, Bodies } from 'matter-js';
 import { StyleSheet, Text, View } from 'react-native';
+import { connect, Provider } from 'react-redux';
+import { createStore } from 'redux';
 import { Constants, Accelerometer, Svg } from 'expo';
 
-import io from 'socket.io-client'
-const url = 'https://341d6202.ngrok.io'
-const socket = io(url, {
-  tranports: ['webSocket']
-})
+import { Scene, sceneReduce } from './Scene';
+import Clock from './Clock';
+import Styles from './Styles';
 
-export default class App extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      accelerometerData: {
-        x: 50,
-        y: 50,
-        z: 0,
-      },
-      pos: {
-        x: 50,
-        y: 50
-      }
-    };
-    // Connect to the server
+import io from 'socket.io-client';
+const url = 'https://341d6202.ngrok.io';
+// const socket = io(url, {
+//   tranports: ['webSocket']
+// })
+
+const Game = () =>
+  <View style={Styles.container}>
+    <Clock />
+    <Scene />
+  </View>;
+
+const dispatchQueue = [];
+
+const mainReduce = (state, action) => {
+  const actions = [action].concat(dispatchQueue);
+  dispatchQueue.length = 0;
+  const dispatch = action => actions.push(action);
+  while (actions.length > 0) {
+    state = sceneReduce(state, actions.shift(), dispatch);
   }
+  return state;
+};
 
-  componentWillUnmount() {
-    this._unsubscribeFromAccelerometer();
-  }
-
-  componentDidMount() {
-    this._subscribeToAccelerometer();
-  }
-
-  _accelerometerToPos({x,y,z}) {
-
-  }
-  _subscribeToAccelerometer = () => {
-    this._acceleroMeterSubscription = Accelerometer.addListener(
-      accelerometerData => {
-        this.setState({ accelerometerData })
-        socket.emit('pos', accelerometerData)
-      }
-    );
-  };
-
-  _unsubscribeFromAccelerometer = () => {
-    this._acceleroMeterSubscription && this._acceleroMeterSubscription.remove();
-    this._acceleroMeterSubscription = null;
-  };
+const store = createStore(mainReduce, mainReduce(undefined, { type: 'START' }));
+export default class Main extends React.Component {
 
   render() {
-    console.log(this.state.accelerometerData)
-    const circle = (
-      <Svg height={250} width={250}>
-      <Svg.Circle
-        x={-this.state.accelerometerData.x*100 + 50}
-        y={-this.state.accelerometerData.y*100 + 50}
-        r={10}
-        strokeWidth={2.5}
-        stroke="#e74c3c"
-        fill="#f1c40f"
-      />
-    </Svg>
-    );
-
     return (
-      <View style={styles.container}>
-        {circle}
-      </View>
+      <Provider store={store}>
+        <Game />
+      </Provider>
     );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
