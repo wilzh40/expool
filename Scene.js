@@ -25,7 +25,7 @@ const defaultReducer = reductions => (state, action, ...rest) =>
  */
 
 const engine = Engine.create();
-engine.world.gravity.y = 0
+engine.world.gravity.y = 0.05
 engine.world.gravity.x = 0
 
 const [sw, sh] = [Styles.screenW, Styles.screenH];
@@ -81,33 +81,11 @@ eightBall_phys = eightBallLocs.map(({ id, x, y }) =>
 // eightBall_phys.forEach(ball => World.add(engine.world, ball));
 World.add(engine.world, eightBall_phys)
 const balls = eightBall_phys
-const boxProps = [];
-const boxes = [];
-
-const addBox = (x, y) => {
-  const size = 30 + 5 * Math.random();
-  boxProps.push({
-    size,
-    color: `rgb(${255 * Math.random()}, ${255 * Math.random()}, ${255 *
-      Math.random()})`,
-  });
-  const box = Bodies.rectangle(x, y, size, size);
-  boxes.push(box);
-  // World.add(engine.world, box);
-};
-
-for (let i = 0; i < 120; ++i) {
-  addBox(
-    0.5 * Styles.screenW + (i % 5 - 2) * 40 + 5 * Math.random() - 2.5,
-    0.5 * Styles.screenH + 10 - Math.floor(i / 3) * 80
-  );
-}
 
 const physicsReduce = defaultReducer({
   START(state) {
     return merge(state, {
       physics: {
-        boxes: boxes.map(({ position, angle }) => ({ position, angle })),
         balls: balls.map(({ position, angle }) => ({ position, angle })),
       },
     });
@@ -120,7 +98,6 @@ const physicsReduce = defaultReducer({
     return merge(state, {
       physics: {
         lastDt: dt,
-        boxes: boxes.map(({ position, angle }) => ({ position, angle })),
         balls: balls.map(({ position, angle }) => ({ position, angle })),
       },
     });
@@ -175,31 +152,6 @@ const Balls = connect(state => ({
   </View>
 );
 
-const Boxes = connect(state => ({
-  boxes: state.get('physics').get('boxes'),
-}))(({ boxes }) =>
-  <View style={Styles.container}>
-    {boxes.map((box, index) => {
-      const x = box.get('position').get('x');
-      const y = box.get('position').get('y');
-      const angle = box.get('angle');
-      return (
-        <View
-          key={`box-${index}`}
-          style={{
-            position: 'absolute',
-            transform: [{ rotate: `${180 / Math.PI * angle}deg` }],
-            left: x - 0.5 * boxProps[index].size,
-            top: y - 0.5 * boxProps[index].size,
-            width: boxProps[index].size,
-            height: boxProps[index].size,
-            backgroundColor: boxProps[index].color,
-          }}
-        />
-      );
-    })}
-  </View>
-);
 
 /**
  * Ground
