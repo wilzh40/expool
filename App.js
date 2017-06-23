@@ -35,7 +35,6 @@ const mainReduce = (state, action) => {
 
 const store = createStore(mainReduce, mainReduce(undefined, { type: 'START' }));
 export default class Main extends React.Component {
-
   render() {
     return (
       <Provider store={store}>
