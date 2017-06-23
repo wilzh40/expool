@@ -1,5 +1,5 @@
 import React from 'react';
-import { Engine, Render, World, Bodies } from 'matter-js';
+import { Engine, Render, World, Bodies } from 'matter-js'
 import { StyleSheet, Text, View } from 'react-native';
 import { Constants, Accelerometer, Svg } from 'expo';
 
@@ -9,7 +9,11 @@ const socket = io(url, {
   tranports: ['webSocket']
 })
 
+const io = require('socket.io-client');
+const url = 'https://7de78ffe.ngrok.io';
+
 export default class App extends React.Component {
+
   constructor(props) {
     super(props);
     this.state = {
@@ -31,6 +35,10 @@ export default class App extends React.Component {
   }
 
   componentDidMount() {
+    socket.on('connect', () => {
+      // do something
+    });
+    
     this._subscribeToAccelerometer();
   }
 
