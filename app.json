@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "jam",
-    "description": "An empty new project",
+    "description": "Play pool! Made for Expo Jam.",
     "slug": "jam",
     "privacy": "public",
     "sdkVersion": "18.0.0",
