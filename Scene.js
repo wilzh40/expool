@@ -89,6 +89,7 @@ const balls = eightBall_phys;
 const physicsReduce = defaultReducer({
   START(state) {
     return merge(state, {
+      canShoot: false,
       physics: {
         balls: balls.map(({ position, angle }) => ({ position, angle })),
         cue: { position: _cue.position },
@@ -154,7 +155,7 @@ const Balls = connect(state => ({
             position: 'absolute',
             left: x - ballRadius,
             top: y - ballRadius,
-            borderRadius: '50%',
+            borderRadius: 50,
             width: 2 * ballRadius,
             height: 2 * ballRadius,
             backgroundColor: 'red',

@@ -23,6 +23,7 @@ const Game = () =>
     <Cue />
   </View>;
 
+connect()(Game)
 const dispatchQueue = [];
 
 const mainReduce = (state, action) => {
