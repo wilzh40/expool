@@ -25,15 +25,19 @@ const defaultReducer = reductions => (state, action, ...rest) =>
  */
 
 const engine = Engine.create();
+// engine.enableSleeping = true
 engine.world.gravity.y = 0;
 engine.world.gravity.x = 0;
 
 const [sw, sh] = [Styles.screenW, Styles.screenH];
+
+// Percentages
+wall_thickness = 30
 const walls = [
-  { x: 0.5 * sw, y: 0.95 * sh, w: sw, h: 0.1 * sh },
-  { x: 0.5 * sw, y: 0.05 * sh, w: sw, h: 0.1 * sh },
-  { x: 0.05 * sw, y: 0.5 * sh, w: 0.1 * sw, h: 1 * sh },
-  { x: 0.95 * sw, y: 0.5 * sh, w: 0.1 * sw, h: 1 * sh },
+  { x: 0.5 * sw, y: 0.95 * sh, w: sw, h: wall_thickness},
+  { x: 0.5 * sw, y: 0.05 * sh, w: sw, h: wall_thickness},
+  { x: 0.05 * sw, y: 0.5 * sh, w: wall_thickness, h: sh },
+  { x: 0.95 * sw, y: 0.5 * sh, w: wall_thickness, h: sh },
 ];
 
 walls_phys = walls.map(wall =>
@@ -89,7 +93,7 @@ const balls = eightBall_phys;
 const physicsReduce = defaultReducer({
   START(state) {
     return merge(state, {
-      canShoot: false,
+      canShoot: true,
       physics: {
         balls: balls.map(({ position, angle }) => ({ position, angle })),
         cue: { position: _cue.position },
@@ -101,7 +105,11 @@ const physicsReduce = defaultReducer({
     const lastDt = state.get('physics').get('lastDt');
 
     Engine.update(engine, 1000 * dt, lastDt ? dt / lastDt : 1);
+    // Check if balls are sleeping
+    const allSleeping = balls.every(({speed, angularSpeed}) => (speed*speed + angularSpeed*angularSpeed) < 0.01)
+      
     return merge(state, {
+      canShoot: allSleeping,
       physics: {
         lastDt: dt,
         balls: balls.map(({ position, angle }) => ({ position, angle })),
@@ -111,10 +119,15 @@ const physicsReduce = defaultReducer({
   },
   SHOOT(state, { magnitude, angle }) {
     // TODO add shit
-    const scale = 0.0001
-    const force = {x: magnitude * scale * Math.cos(angle), y: magnitude * scale * Math.sin(angle)}
-    Body.applyForce(_cue, _cue.position, force)
-    return state
+    if (state.get('canShoot')) {
+      const scale = 0.0001;
+      const force = {
+        x: magnitude * scale * Math.cos(angle),
+        y: magnitude * scale * Math.sin(angle),
+      };
+      Body.applyForce(_cue, _cue.position, force);
+    }
+    return state;
   },
 
   TOUCH(state, { pressed, x0, y0 }) {
