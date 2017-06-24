@@ -247,7 +247,7 @@ const Hoes = () =>
             borderRadius: 50,
             width: 2 * holeRadius,
             height: 2 * holeRadius,
-            backgroundColor: '#444',
+            backgroundColor: '#222',
           }}
         />
       );
