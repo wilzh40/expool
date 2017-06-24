@@ -156,7 +156,7 @@ const physicsReduce = defaultReducer({
   SHOOT(state, { magnitude, angle }) {
     // TODO add shit
     if (state.get('canShoot')) {
-      const scale = 0.0001;
+      const scale = 0.0005;
       const force = {
         x: magnitude * scale * Math.cos(angle),
         y: magnitude * scale * Math.sin(angle),
@@ -207,7 +207,7 @@ const Balls = connect(state => ({
             borderRadius: 50,
             width: 2 * ballRadius,
             height: 2 * ballRadius,
-            backgroundColor: 'black',
+            backgroundColor: 'lightgrey',
           }}
         />
       );
@@ -247,7 +247,7 @@ const Hoes = () =>
             borderRadius: 50,
             width: 2 * holeRadius,
             height: 2 * holeRadius,
-            backgroundColor: 'grey',
+            backgroundColor: '#444',
           }}
         />
       );
@@ -311,12 +311,12 @@ export const sceneReduce = (state = Immutable.fromJS({}), action, dispatch) => {
 export const Scene = () =>
   <View
     key="scene-container"
-    style={[Styles.container, { backgroundColor: '#DDE' }]}>
+    style={[Styles.container, { backgroundColor: '#111' }]}>
     <View
       style={{
         flex: 1,
         position: 'absolute',
-        backgroundColor: 'black',
+        backgroundColor: 'lightgrey',
         margin: 20
       }}/>
       <Cue />
