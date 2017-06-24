@@ -43,7 +43,7 @@ class Cue extends React.Component {
             width={Dimensions.get('window').width}>
             <Svg.Line
               x1={ballX}
-              y1={ballY}
+              y1={ballY - 30}
               x2={(this.state.startX - this.state.endX) / 1.5 + ballX}
               y2={(this.state.startY - this.state.endY) / 1.5 + ballY}
               stroke="black"
@@ -78,24 +78,23 @@ class Cue extends React.Component {
       endX: gestureState.moveX,
       endY: gestureState.moveY,
     });
-    if (0.15 + (gestureState.dy + gestureState.dy) / 700 * 0.7 < 0.9) {
-      this.setState({
-        showCue: 0.15 + (gestureState.dy + gestureState.dy) / 700 * 0.7,
-      });
+    var magValue = 0.15 + (Math.sqrt(Math.pow(this.state.endX - this.state.startX, 2) + Math.pow(this.state.endY - this.state.startY, 2)) / 700) * 0.7;
+    if (magValue < 0.9) {
+      this.setState({ showCue: magValue })
     } else {
-      this.setState({ showCue: 0.9 });
+      this.setState({ showCue: 0.9 })
     }
   };
 
   handlePanResponderEnd = (e, gestureState) => {
-    var magnitude = Math.sqrt(
+    var magnitude = (Math.sqrt(
       Math.pow(this.state.endX - this.state.startX, 2) +
         Math.pow(this.state.endY - this.state.startY, 2)
-    );
+    )) / 5;
     var angle = Math.atan2(
       this.state.endY - this.state.startY,
       this.state.endX - this.state.startX
-    );
+    ) + 3.14;
     this.setState({
       magnitude,
       angle,
