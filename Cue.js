@@ -46,7 +46,7 @@ class Cue extends React.Component {
               y1={ballY - 30}
               x2={(this.state.startX - this.state.endX) / 1.5 + ballX}
               y2={(this.state.startY - this.state.endY) / 1.5 + ballY}
-              stroke="white"
+              stroke="black"
               strokeWidth="5"
               strokeOpacity={this.state.showCue}
               strokeDasharray={[5.2, 5.2]}
