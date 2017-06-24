@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { View } from 'react-native';
 import Immutable from 'immutable';
 
@@ -32,10 +33,11 @@ engine.world.gravity.x = 0;
 const [sw, sh] = [Styles.screenW, Styles.screenH];
 
 // Percentages
-wall_thickness = 30
+wall_thickness = 30;
+holeRadius = 20;
 const walls = [
-  { x: 0.5 * sw, y: 0.95 * sh, w: sw, h: wall_thickness},
-  { x: 0.5 * sw, y: 0.05 * sh, w: sw, h: wall_thickness},
+  { x: 0.5 * sw, y: 0.95 * sh, w: sw, h: wall_thickness },
+  { x: 0.5 * sw, y: 0.05 * sh, w: sw, h: wall_thickness },
   { x: 0.05 * sw, y: 0.5 * sh, w: wall_thickness, h: sh },
   { x: 0.95 * sw, y: 0.5 * sh, w: wall_thickness, h: sh },
 ];
@@ -45,6 +47,24 @@ walls_phys = walls.map(wall =>
 );
 
 walls_phys.map(wall => World.add(engine.world, wall));
+
+const holes = [
+  //left
+  { x: 0.1 * sw, y: 0.95 * sh },
+  { x: 0.1 * sw, y: 0.45 * sh },
+  { x: 0.1 * sw, y: 0.05 * sh },
+  //right
+  { x: 0.9 * sw, y: 0.95 * sh },
+  { x: 0.9 * sw, y: 0.45 * sh },
+  { x: 0.9 * sw, y: 0.05 * sh },
+];
+
+hole_bounds = holes.map(hole => {
+  const holebody = Bodies.circle(hole.x, hole.y, 0.9 * holeRadius, {
+    isStatic: true,
+  });
+  return holebody.bounds;
+});
 
 const SCALE = 1;
 const sp = {
@@ -88,7 +108,7 @@ eightBall_phys = eightBallLocs.map(({ id, x, y }) =>
 );
 // eightBall_phys.forEach(ball => World.add(engine.world, ball));
 World.add(engine.world, eightBall_phys);
-const balls = eightBall_phys;
+let balls = eightBall_phys;
 
 const physicsReduce = defaultReducer({
   START(state) {
@@ -106,8 +126,24 @@ const physicsReduce = defaultReducer({
 
     Engine.update(engine, 1000 * dt, lastDt ? dt / lastDt : 1);
     // Check if balls are sleeping
-    const allSleeping = balls.every(({speed, angularSpeed}) => (speed*speed + angularSpeed*angularSpeed) < 0.01)
-      
+    const allSleeping = balls.every(
+      ({ speed, angularSpeed }) =>
+        speed * speed + angularSpeed * angularSpeed < 0.01
+    );
+    // Collision detecting with balls and holes
+    let sunkenBalls = [];
+    hole_bounds.forEach(bound => {
+      const intersections = Query.region(balls, bound);
+      sunkenBalls = sunkenBalls.concat(intersections);
+    });
+
+    if (sunkenBalls.length > 0) {
+      console.log('sunk!');
+      sunkenBalls.forEach(b => World.remove(engine.world, b));
+    }
+    balls = balls.filter(
+      ({ id }) => sunkenBalls.map(b => b.id).indexOf(id) === -1
+    );
     return merge(state, {
       canShoot: allSleeping,
       physics: {
@@ -171,7 +207,7 @@ const Balls = connect(state => ({
             borderRadius: 50,
             width: 2 * ballRadius,
             height: 2 * ballRadius,
-            backgroundColor: 'red',
+            backgroundColor: 'black',
           }}
         />
       );
@@ -189,26 +225,74 @@ const Cue = connect(state => ({
       borderRadius: 50,
       width: 2 * ballRadius,
       height: 2 * ballRadius,
-      backgroundColor: 'black',
+      backgroundColor: 'white',
+      borderWidth: 3,
+      borderColor: 'black',
     }}
   />
 );
 
+const Hoes = () =>
+  <View style={Styles.container}>
+    {holes.map((hole, index) => {
+      const x = hole.x;
+      const y = hole.y;
+      return (
+        <View
+          key={`hole-${index}`}
+          style={{
+            position: 'absolute',
+            left: x - holeRadius,
+            top: y - holeRadius,
+            borderRadius: 50,
+            width: 2 * holeRadius,
+            height: 2 * holeRadius,
+            backgroundColor: 'grey',
+          }}
+        />
+      );
+    })}
+  </View>;
+
+marginW = 0.05 * sw;
+marginH = 0.05 * sh;
+const PlayingArea = () =>
+  <View
+    style={{
+      flex: 1,
+      position: 'absolute',
+      backgroundColor: 'white',
+      marginLeft: marginW,
+      marginRight: marginW,
+      marginTop: marginH,
+      marginBottom: marginH,
+    }}
+  />;
+
+const Walls = () =>
+  <View style={Styles.container}>
+    {walls.map((wall, index) => {
+      const x = wall.x;
+      const y = wall.y;
+      return (
+        <View
+          key={`wall-${index}`}
+          style={{
+            position: 'absolute',
+            left: wall.x,
+            top: wall.y,
+            width: wall.w,
+            height: wall.h,
+            position: 'absolute',
+            backgroundColor: 'black',
+          }}
+        />
+      );
+    })}
+  </View>;
 /**
      * Ground
      */
-
-const Ground = () =>
-  <View
-    style={{
-      position: 'absolute',
-      left: 0,
-      top: 0.9 * Styles.screenH,
-      width: Styles.ScreenW,
-      height: 0.1 * Styles.screenH,
-      backgroundColor: 'blue',
-    }}
-  />;
 
 /**
  * Fluxpy
@@ -227,8 +311,15 @@ export const sceneReduce = (state = Immutable.fromJS({}), action, dispatch) => {
 export const Scene = () =>
   <View
     key="scene-container"
-    style={[Styles.container, { backgroundColor: '#FFF' }]}>
-    <Ground />
-    <Cue />
-    <Balls />
+    style={[Styles.container, { backgroundColor: '#DDE' }]}>
+    <View
+      style={{
+        flex: 1,
+        position: 'absolute',
+        backgroundColor: 'black',
+        margin: 20
+      }}/>
+      <Cue />
+      <Balls />
+      <Hoes />
   </View>;
