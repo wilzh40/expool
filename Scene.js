@@ -173,7 +173,7 @@ const Cue = connect(state => ({
       position: 'absolute',
       left: cue.get('position').get('x') - ballRadius,
       top: cue.get('position').get('y') - ballRadius,
-      borderRadius: '50%',
+      borderRadius: 50,
       width: 2 * ballRadius,
       height: 2 * ballRadius,
       backgroundColor: 'black',
