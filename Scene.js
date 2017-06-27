@@ -12,6 +12,7 @@ import { Composites, Query, Bodies, Body, Engine, World } from 'matter-js';
 /*
  * mergeDeep but clobber arrays.
  */
+
 const merge = (a, b) => (Immutable.Map.isMap(a) ? a.mergeWith(merge, b) : b);
 
 /*
@@ -22,7 +23,7 @@ const defaultReducer = reductions => (state, action, ...rest) =>
   (reductions[action.type] || reductions.DEFAULT)(state, action, ...rest);
 
 /*
- * Physics
+ * Physics Definitions
  */
 
 const engine = Engine.create();
@@ -33,34 +34,33 @@ engine.world.gravity.x = 0;
 const [sw, sh] = [Styles.screenW, Styles.screenH];
 
 // Percentages
-wall_thickness = 30;
+wallThickness = 30;
 holeRadius = 20;
 const walls = [
-  { x: 0.5 * sw, y: 0.95 * sh, w: sw, h: wall_thickness },
-  { x: 0.5 * sw, y: 0.05 * sh, w: sw, h: wall_thickness },
-  { x: 0.05 * sw, y: 0.5 * sh, w: wall_thickness, h: sh },
-  { x: 0.95 * sw, y: 0.5 * sh, w: wall_thickness, h: sh },
+  { x: 0.5 * sw, y: 0.95 * sh, w: sw, h: wallThickness },
+  { x: 0.5 * sw, y: 0.05 * sh, w: sw, h: wallThickness },
+  { x: 0.05 * sw, y: 0.5 * sh, w: wallThickness, h: sh },
+  { x: 0.95 * sw, y: 0.5 * sh, w: wallThickness, h: sh },
 ];
 
 walls_phys = walls.map(wall =>
   Bodies.rectangle(wall.x, wall.y, wall.w, wall.h, { isStatic: true })
 );
-
 walls_phys.map(wall => World.add(engine.world, wall));
 
 const holes = [
   //left
-  { x: 0.1 * sw, y: 0.95 * sh },
+  { x: 0.1 * sw, y: 0.90 * sh },
   { x: 0.1 * sw, y: 0.45 * sh },
-  { x: 0.1 * sw, y: 0.05 * sh },
+  { x: 0.1 * sw, y: 0.10 * sh },
   //right
-  { x: 0.9 * sw, y: 0.95 * sh },
+  { x: 0.9 * sw, y: 0.90 * sh },
   { x: 0.9 * sw, y: 0.45 * sh },
-  { x: 0.9 * sw, y: 0.05 * sh },
+  { x: 0.9 * sw, y: 0.1 * sh },
 ];
 
 hole_bounds = holes.map(hole => {
-  const holebody = Bodies.circle(hole.x, hole.y, 0.9 * holeRadius, {
+  const holebody = Bodies.circle(hole.x, hole.y, 0.5 * holeRadius, {
     isStatic: true,
   });
   return holebody.bounds;
@@ -94,21 +94,46 @@ const eightBallLocs = [
   { id: 15, x: sp.x - 8 * ballRadius, y: sp.y },
 ];
 
-const _cue = Bodies.circle(cueStart.x, cueStart.y, ballRadius, {
-  restitution: 0.5,
-  friction: 0.2,
+const cueBall = Bodies.circle(cueStart.x, cueStart.y, ballRadius, {
+  restitution: 0.8,
+  friction: 0.3,
 });
-World.add(engine.world, _cue);
+World.add(engine.world, cueBall);
 
 // const stack = Composites.pyramid(sw/2,sh/2,3,3,0,0, ({ x, y }) =>
 //   Bodies.circle(x, y, ballRadius, { restitution: 0.6, friction: 0.1 })
 // );
 eightBall_phys = eightBallLocs.map(({ id, x, y }) =>
-  Bodies.circle(x, y, ballRadius, { restitution: 0.6, friction: 0.1 })
+  Bodies.circle(x, y, ballRadius, { restitution: 0.8, friction: 0.4 })
 );
 // eightBall_phys.forEach(ball => World.add(engine.world, ball));
 World.add(engine.world, eightBall_phys);
 let balls = eightBall_phys;
+
+const _ballsSleeping = () => {
+  const objects = balls + [cueBall]
+  const allSleeping = balls.every(
+    ({ speed, angularSpeed }) =>
+      speed * speed + angularSpeed * angularSpeed < 0.01
+  );
+  return allSleeping
+}
+const _detectCollisions = () => {
+    let sunkenBalls = [];
+    hole_bounds.forEach(bound => {
+      const intersections = Query.region(balls, bound);
+      sunkenBalls = sunkenBalls.concat(intersections);
+    });
+
+    // Remove from world
+    if (sunkenBalls.length > 0) {
+      console.log('sunk!');
+      sunkenBalls.forEach(b => World.remove(engine.world, b));
+    }
+    balls = balls.filter(
+      ({ id }) => sunkenBalls.map(b => b.id).indexOf(id) === -1
+    );
+}
 
 const physicsReduce = defaultReducer({
   START(state) {
@@ -116,7 +141,7 @@ const physicsReduce = defaultReducer({
       canShoot: true,
       physics: {
         balls: balls.map(({ position, angle }) => ({ position, angle })),
-        cue: { position: _cue.position },
+        cue: { position: cueBall.position },
       },
     });
   },
@@ -126,30 +151,19 @@ const physicsReduce = defaultReducer({
 
     Engine.update(engine, 1000 * dt, lastDt ? dt / lastDt : 1);
     // Check if balls are sleeping
-    const allSleeping = balls.every(
-      ({ speed, angularSpeed }) =>
-        speed * speed + angularSpeed * angularSpeed < 0.01
-    );
-    // Collision detecting with balls and holes
-    let sunkenBalls = [];
-    hole_bounds.forEach(bound => {
-      const intersections = Query.region(balls, bound);
-      sunkenBalls = sunkenBalls.concat(intersections);
-    });
+    
+    const allSleeping = _ballsSleeping()
 
-    if (sunkenBalls.length > 0) {
-      console.log('sunk!');
-      sunkenBalls.forEach(b => World.remove(engine.world, b));
-    }
-    balls = balls.filter(
-      ({ id }) => sunkenBalls.map(b => b.id).indexOf(id) === -1
-    );
+
+    // Collision detecting with balls and holes
+    _detectCollisions() 
+
     return merge(state, {
       canShoot: allSleeping,
       physics: {
         lastDt: dt,
         balls: balls.map(({ position, angle }) => ({ position, angle })),
-        cue: { position: _cue.position },
+        cue: { position: cueBall.position },
       },
     });
   },
@@ -161,22 +175,7 @@ const physicsReduce = defaultReducer({
         x: magnitude * scale * Math.cos(angle),
         y: magnitude * scale * Math.sin(angle),
       };
-      Body.applyForce(_cue, _cue.position, force);
-    }
-    return state;
-  },
-
-  TOUCH(state, { pressed, x0, y0 }) {
-    if (pressed) {
-      const point = { x: x0, y: y0 };
-      const toucheds = Query.point(engine.world.bodies, point);
-      console.log('toucheds', toucheds);
-      toucheds.forEach(touched => {
-        Body.applyForce(touched, point, { x: 0, y: -0.05 * touched.mass });
-      });
-      if (toucheds.length === 0) {
-        addBox(x0, y0);
-      }
+      Body.applyForce(cueBall, cueBall.position, force);
     }
     return state;
   },
@@ -216,7 +215,8 @@ const Balls = connect(state => ({
 );
 const Cue = connect(state => ({
   cue: state.get('physics').get('cue'),
-}))(({ cue }) =>
+  canShoot: state.get('canShoot')
+}))(({ cue, canShoot }) =>
   <View
     style={{
       position: 'absolute',
@@ -225,14 +225,14 @@ const Cue = connect(state => ({
       borderRadius: 50,
       width: 2 * ballRadius,
       height: 2 * ballRadius,
-      backgroundColor: 'white',
+      backgroundColor: 'black',
       borderWidth: 3,
-      borderColor: 'black',
+      borderColor: canShoot ? 'white' : 'grey'
     }}
   />
 );
 
-const Hoes = () =>
+const Holes = () =>
   <View style={Styles.container}>
     {holes.map((hole, index) => {
       const x = hole.x;
@@ -284,7 +284,7 @@ const Walls = () =>
             width: wall.w,
             height: wall.h,
             position: 'absolute',
-            backgroundColor: 'black',
+            backgroundColor: 'white',
           }}
         />
       );
@@ -320,6 +320,6 @@ export const Scene = () =>
         margin: 20
       }}/>
       <Cue />
+      <Holes />
       <Balls />
-      <Hoes />
   </View>;

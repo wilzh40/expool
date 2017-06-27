@@ -16,6 +16,7 @@ const url = 'https://341d6202.ngrok.io';
 //   tranports: ['webSocket']
 // })
 
+
 const Game = () =>
   <View style={Styles.container}>
     <Clock />
@@ -23,9 +24,7 @@ const Game = () =>
     <Cue />
   </View>;
 
-connect()(Game)
 const dispatchQueue = [];
-
 const mainReduce = (state, action) => {
   const actions = [action].concat(dispatchQueue);
   dispatchQueue.length = 0;
@@ -37,6 +36,7 @@ const mainReduce = (state, action) => {
 };
 
 const store = createStore(mainReduce, mainReduce(undefined, { type: 'START' }));
+
 export default class Main extends React.Component {
   render() {
     return (
